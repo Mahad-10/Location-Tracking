@@ -3,6 +3,7 @@ package pk.codebase.tracklocation5;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.FragmentActivity;
 
 import android.Manifest;
@@ -26,7 +27,9 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
@@ -52,6 +55,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private LatLng latLng;
     private boolean isPermission;
     private Location location;
+    Marker mCurrLocationMarker;
+    Location mLastLocation;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -135,14 +140,18 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         googleMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
             @Override
             public void onMapClick(LatLng latLng) {
-                mMap.addMarker(new MarkerOptions().position(latLng).title("Marker in current Location"));
+                if (ContextCompat.checkSelfPermission(getApplicationContext(),Manifest.permission.ACCESS_FINE_LOCATION)
+                == PackageManager.PERMISSION_GRANTED)
+                mMap.setMyLocationEnabled(true);
             }
         });
 
         if (latLng != null) {
             mMap.addMarker(new MarkerOptions().position(latLng).title("Marker in current Location"));
             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(latLng, 14F));
+            mMap.setMyLocationEnabled(true);
         }
+
     }
 
     @Override
@@ -194,10 +203,12 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
 
         latLng = new LatLng(location.getLatitude(), location.getLongitude());
-
-
-
-
+        if (mCurrLocationMarker != null) {
+            mCurrLocationMarker.remove();
+        }
+        if (mGoogleApiClient != null) {
+            LocationServices.FusedLocationApi.removeLocationUpdates(mGoogleApiClient, this);
+        }
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
